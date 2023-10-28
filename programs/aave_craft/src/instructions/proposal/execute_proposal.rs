@@ -8,7 +8,9 @@ use anchor_spl::token::{InitializeAccount, Token, TokenAccount};
 use crate::{
     constants::INVESTMENT_DAO_TREASURY_SEED,
     errors::InvestmentDaoError,
-    state::{Currency, InvestmentDao, Proposal, ProposalState, ProposalType, WithdrawalData},
+    state::{
+        Currency, InvestmentDao, Proposal, ProposalState, ProposalType, Vesting, WithdrawalData,
+    },
 };
 
 #[derive(Accounts)]
@@ -49,8 +51,119 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
     proposal.proposal_state = ProposalState::Executed;
 
+    let bump = InvestmentDao::check_treasury_seeds(
+        &ctx.accounts.dao_treasury,
+        &investment_dao.key(),
+        investment_dao.denominated_currency,
+        ctx.accounts.token_program.key,
+    )?;
+
     match proposal.proposal_type {
-        ProposalType::Investing => {}
+        ProposalType::Investing => {
+            let vesting_config = proposal.vesting_config.clone().unwrap();
+
+            let vesting_data = next_account_info(remaining_accounts)?;
+
+            let vesting_treasury = next_account_info(remaining_accounts)?;
+
+            let vesting_mint = next_account_info(remaining_accounts)?;
+
+            proposal.check_vesting_data_seeds(
+                vesting_data.clone(),
+                &proposal.key(),
+                ctx.program_id,
+            )?;
+
+            let v_data = Vesting {
+                config: vesting_config.clone(),
+                created_at: Clock::get().unwrap().unix_timestamp,
+                proposal: proposal.key(),
+                last_claim_at: 0,
+                total_claimed: 0,
+            };
+
+            create_account(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    CreateAccount {
+                        from: ctx.accounts.payer.to_account_info(),
+                        to: vesting_data.to_account_info(),
+                    },
+                ),
+                Rent::default().minimum_balance(8 + Vesting::INIT_SPACE),
+                8 + Vesting::INIT_SPACE as u64,
+                ctx.program_id,
+            )?;
+
+            let mut data: Vec<u8> = vec![];
+            data.extend_from_slice(&Vesting::discriminator());
+            data.extend_from_slice(&v_data.try_to_vec().unwrap());
+
+            vesting_data.data.borrow_mut().copy_from_slice(&data);
+
+            match investment_dao.currency {
+                Currency::Sol => {
+                    anchor_lang::system_program::transfer(
+                        CpiContext::new_with_signer(
+                            ctx.accounts.system_program.to_account_info(),
+                            anchor_lang::system_program::Transfer {
+                                from: ctx.accounts.dao_treasury.to_account_info(),
+                                to: vesting_treasury.to_account_info(),
+                            },
+                            &[&[
+                                INVESTMENT_DAO_TREASURY_SEED,
+                                investment_dao.key().as_ref(),
+                                investment_dao.denominated_currency.as_ref(),
+                                &[bump],
+                            ]],
+                        ),
+                        vesting_config.total_amount,
+                    )?;
+                }
+                Currency::Spl => {
+                    create_account(
+                        CpiContext::new(
+                            ctx.accounts.system_program.to_account_info(),
+                            CreateAccount {
+                                from: ctx.accounts.payer.to_account_info(),
+                                to: vesting_treasury.to_account_info(),
+                            },
+                        ),
+                        Rent::default().minimum_balance(TokenAccount::LEN),
+                        TokenAccount::LEN as u64,
+                        ctx.accounts.token_program.key,
+                    )?;
+
+                    anchor_spl::token::initialize_account(CpiContext::new(
+                        ctx.accounts.token_program.to_account_info(),
+                        InitializeAccount {
+                            account: vesting_treasury.to_account_info(),
+                            authority: vesting_treasury.to_account_info(),
+                            mint: vesting_mint.to_account_info(),
+                            rent: ctx.accounts.rent.to_account_info(),
+                        },
+                    ))?;
+
+                    anchor_spl::token::transfer(
+                        CpiContext::new_with_signer(
+                            ctx.accounts.token_program.to_account_info(),
+                            anchor_spl::token::Transfer {
+                                authority: ctx.accounts.dao_treasury.to_account_info(),
+                                from: ctx.accounts.dao_treasury.to_account_info(),
+                                to: vesting_treasury.to_account_info(),
+                            },
+                            &[&[
+                                INVESTMENT_DAO_TREASURY_SEED,
+                                investment_dao.key().as_ref(),
+                                investment_dao.denominated_currency.as_ref(),
+                                &[bump],
+                            ]],
+                        ),
+                        vesting_config.total_amount,
+                    )?;
+                }
+            }
+        }
         ProposalType::Withdrawal => {
             let withdrawal_data = next_account_info(remaining_accounts)?;
 
@@ -85,13 +198,6 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
             data.extend_from_slice(&w_data.try_to_vec().unwrap());
 
             withdrawal_data.data.borrow_mut().copy_from_slice(&data);
-
-            let bump = InvestmentDao::check_treasury_seeds(
-                &ctx.accounts.dao_treasury,
-                &investment_dao.key(),
-                investment_dao.denominated_currency,
-                ctx.accounts.token_program.key,
-            )?;
 
             match investment_dao.currency {
                 Currency::Sol => {

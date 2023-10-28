@@ -2,7 +2,10 @@ use std::ops::{Div, Mul};
 
 use anchor_lang::prelude::*;
 
-use crate::{constants::WITHDRWAL_SEED, errors::InvestmentDaoError};
+use crate::{
+    constants::{VESTING_SEED, WITHDRWAL_SEED},
+    errors::InvestmentDaoError,
+};
 
 use super::{InvestmentDao, VestingConfig};
 
@@ -83,6 +86,21 @@ impl Proposal {
             InvestmentDaoError::InvalidProposalData
         );
         Ok(bump)
+    }
+
+    pub fn check_vesting_data_seeds(
+        &self,
+        vesting_data: AccountInfo,
+        proposal_address: &Pubkey,
+        program_id: &Pubkey,
+    ) -> Result<()> {
+        let (address, _) =
+            Pubkey::find_program_address(&[VESTING_SEED, proposal_address.as_ref()], program_id);
+        require!(
+            address == vesting_data.key(),
+            InvestmentDaoError::InvalidProposalData
+        );
+        Ok(())
     }
 }
 
