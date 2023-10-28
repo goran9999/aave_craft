@@ -66,8 +66,6 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
             let vesting_treasury = next_account_info(remaining_accounts)?;
 
-            let vesting_mint = next_account_info(remaining_accounts)?;
-
             proposal.check_vesting_data_seeds(
                 vesting_data.clone(),
                 &proposal.key(),
@@ -122,6 +120,8 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
                     )?;
                 }
                 Currency::Spl => {
+                    let vesting_mint = next_account_info(remaining_accounts)?;
+
                     create_account(
                         CpiContext::new(
                             ctx.accounts.system_program.to_account_info(),
