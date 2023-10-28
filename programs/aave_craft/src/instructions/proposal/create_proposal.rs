@@ -67,5 +67,6 @@ pub fn create_proposal(
     }
 
     proposal.authority = ctx.accounts.authority.key();
+    proposal.dao = ctx.accounts.investment_dao.key();
     Ok(())
 }

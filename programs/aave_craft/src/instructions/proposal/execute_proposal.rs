@@ -6,7 +6,7 @@ use anchor_lang::{
 use anchor_spl::token::{InitializeAccount, Token, TokenAccount};
 
 use crate::{
-    constants::INVESTMENT_DAO_TREASURY_SEED,
+    constants::{INVESTMENT_DAO_TREASURY_SEED, VESTING_SEED, WITHDRWAL_SEED},
     errors::InvestmentDaoError,
     state::{
         Currency, InvestmentDao, Proposal, ProposalState, ProposalType, Vesting, WithdrawalData,
@@ -15,15 +15,15 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct ExecuteProposal<'info> {
-    #[account()]
+    #[account(mut)]
     //no checks as anyone should be able to execute succeded proposal
     pub payer: Signer<'info>,
-    #[account()]
+    #[account(mut)]
     pub proposal: Account<'info, Proposal>,
-    #[account()]
+    #[account(mut)]
     ///CHECK:seeds checekd
     pub dao_treasury: UncheckedAccount<'info>,
-    #[account()]
+    #[account(mut)]
     pub investment_dao: Account<'info, InvestmentDao>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -51,11 +51,17 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
     proposal.proposal_state = ProposalState::Executed;
 
+    let program_id = if investment_dao.currency == Currency::Sol {
+        ctx.program_id
+    } else {
+        ctx.accounts.token_program.key
+    };
+
     let bump = InvestmentDao::check_treasury_seeds(
         &ctx.accounts.dao_treasury,
         &investment_dao.key(),
         investment_dao.denominated_currency,
-        ctx.accounts.token_program.key,
+        program_id,
     )?;
 
     match proposal.proposal_type {
@@ -66,7 +72,7 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
             let vesting_treasury = next_account_info(remaining_accounts)?;
 
-            proposal.check_vesting_data_seeds(
+            let v_bump = proposal.check_vesting_data_seeds(
                 vesting_data.clone(),
                 &proposal.key(),
                 ctx.program_id,
@@ -82,12 +88,13 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
             };
 
             create_account(
-                CpiContext::new(
+                CpiContext::new_with_signer(
                     ctx.accounts.system_program.to_account_info(),
                     CreateAccount {
                         from: ctx.accounts.payer.to_account_info(),
                         to: vesting_data.to_account_info(),
                     },
+                    &[&[VESTING_SEED, proposal.key().as_ref(), &[v_bump]]],
                 ),
                 Rent::default().minimum_balance(8 + Vesting::INIT_SPACE),
                 8 + Vesting::INIT_SPACE as u64,
@@ -170,19 +177,20 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
             let withdrawal_treasury = next_account_info(remaining_accounts)?;
 
-            proposal.check_withdrwal_data_seeds(
+            let w_bump = proposal.check_withdrwal_data_seeds(
                 withdrawal_data.clone(),
                 &proposal.key(),
                 ctx.program_id,
             )?;
 
             create_account(
-                CpiContext::new(
+                CpiContext::new_with_signer(
                     ctx.accounts.system_program.to_account_info(),
                     CreateAccount {
                         from: ctx.accounts.payer.to_account_info(),
                         to: withdrawal_data.to_account_info(),
                     },
+                    &[&[WITHDRWAL_SEED, proposal.key().as_ref(), &[w_bump]]],
                 ),
                 Rent::default().minimum_balance(8 + WithdrawalData::INIT_SPACE),
                 8 + WithdrawalData::INIT_SPACE as u64,
@@ -210,7 +218,12 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
                                 from: ctx.accounts.dao_treasury.to_account_info(),
                                 to: withdrawal_treasury.to_account_info(),
                             },
-                            &[&[]],
+                            &[&[
+                                INVESTMENT_DAO_TREASURY_SEED,
+                                investment_dao.key().as_ref(),
+                                investment_dao.denominated_currency.as_ref(),
+                                &[bump],
+                            ]],
                         ),
                         proposal.withdraw_amount.unwrap(),
                     )?;

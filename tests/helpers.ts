@@ -2,6 +2,7 @@ import {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
@@ -58,4 +59,13 @@ export function getActionLog(action: string) {
   console.log("\n \n");
 
   console.log(b + ` ${action.toLocaleUpperCase()} ` + b);
+}
+
+export async function getAccountSolBalance(
+  account: PublicKey,
+  connection: Connection
+) {
+  const balance = await connection.getBalance(account);
+
+  return balance / LAMPORTS_PER_SOL;
 }

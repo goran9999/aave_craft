@@ -93,14 +93,14 @@ impl Proposal {
         vesting_data: AccountInfo,
         proposal_address: &Pubkey,
         program_id: &Pubkey,
-    ) -> Result<()> {
-        let (address, _) =
+    ) -> Result<u8> {
+        let (address, bump) =
             Pubkey::find_program_address(&[VESTING_SEED, proposal_address.as_ref()], program_id);
         require!(
             address == vesting_data.key(),
             InvestmentDaoError::InvalidProposalData
         );
-        Ok(())
+        Ok(bump)
     }
 }
 

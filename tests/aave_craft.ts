@@ -2,8 +2,9 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { AaveCraft } from "../target/types/aave_craft";
-import { DaoAction, ProposalType } from "./constants";
+import { DaoAction, ProposalType, VoteOption } from "./constants";
 import {
+  getAccountSolBalance,
   getActionLog,
   getKeypair,
   getLog,
@@ -138,27 +139,106 @@ describe("aave_craft", () => {
       console.log(error);
     }
 
+    const proposal1 = new Proposal(
+      dao,
+      program,
+      "SOL withdrawal",
+      "Withdrawing potion of deposited sol",
+      ProposalType.Withdrawal
+    );
     try {
       getActionLog(`Creating withdrawal proposal`);
 
-      const proposal = new Proposal(
-        dao,
-        program,
-        "SOL withdrawal",
-        "Withdrawing potion of deposited sol",
-        ProposalType.Withdrawal
-      );
-
-      const ix = await proposal.createWithdrawalProposal(3 * LAMPORTS_PER_SOL);
+      const ix = await proposal1.createWithdrawalProposal(3 * LAMPORTS_PER_SOL);
 
       await sendAndConfirmTransaction([ix], connection, [authority]);
-      const createdProposal = await proposal.getProposal();
+      const createdProposal = await proposal1.getProposal();
 
       getLog(
-        `Created proposal with name: ${
+        `Created withdrawal proposal with name: ${
           createdProposal.name
         }, voting threshold: ${createdProposal.voteThreshold} votes and type: ${
           Object.keys(createdProposal.proposalType)[0]
+        }`
+      );
+      getLog(
+        `Withdrawing ${
+          createdProposal.withdrawAmount.toNumber() / LAMPORTS_PER_SOL
+        } SOLs through proposal`
+      );
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      getActionLog(`Casting votes`);
+      const ix = await proposal1.castVote(VoteOption.Yes, authority.publicKey);
+      await sendAndConfirmTransaction([ix], connection, [authority]);
+
+      const proposalData = await proposal1.getProposal();
+      getLog(
+        `Voted with authority, proposal has ${
+          proposalData.yesVotesCount
+        } and state ${Object.keys(proposalData.proposalState)[0]}`
+      );
+      const ix2 = await proposal1.castVote(
+        VoteOption.Yes,
+        daoMember2.publicKey
+      );
+      await sendAndConfirmTransaction([ix2], connection, [daoMember2]);
+      const updatedProposalData = await proposal1.getProposal();
+      getLog(
+        `Voted with authority, proposal has ${
+          updatedProposalData.yesVotesCount
+        } and state ${Object.keys(updatedProposalData.proposalState)[0]}`
+      );
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      getActionLog(`Executing proposal`);
+      const ix = await proposal1.executeProposal(daoMember1.publicKey);
+      await sendAndConfirmTransaction([ix], connection, [daoMember1]);
+      const proposal = await proposal1.getProposal();
+
+      getLog(
+        `Executed proposal, with final state ${
+          Object.keys(proposal.proposalState)[0]
+        }`
+      );
+      const treasurySolBalance = await dao.getTreasurySolBalance(connection);
+      getLog(
+        `Treasury balance after executing proposal ${treasurySolBalance} SOL`
+      );
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      getActionLog(`Withdrawing funds`);
+      const authBalanceBefore = await getAccountSolBalance(
+        authority.publicKey,
+        connection
+      );
+      getLog(`Authority balance before withdrawing: ${authBalanceBefore}`);
+      const ix = await proposal1.withdrawMineFunds(authority.publicKey);
+      await sendAndConfirmTransaction([ix], connection, [authority]);
+      const authBalanceAfter = await getAccountSolBalance(
+        authority.publicKey,
+        connection
+      );
+      const fr1 = await dao.getFinancialRecord(authority.publicKey);
+      getLog(`Authority balance after withdrawing: ${authBalanceAfter}`);
+      const proposalData = await proposal1.getProposal();
+      const totalFinPower = await dao.getTotalFinancialPower();
+      getLog(
+        `Authority earned ${
+          authBalanceAfter - authBalanceBefore
+        } SOL because his ownership was ${(
+          fr1.totalDepositAmount.toNumber() / totalFinPower.toNumber()
+        ).toFixed(4)}%, out of withdrawable ${
+          proposalData.withdrawAmount.toNumber() / LAMPORTS_PER_SOL
         }`
       );
     } catch (error) {

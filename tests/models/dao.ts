@@ -172,4 +172,11 @@ export class Dao {
 
     return balance / LAMPORTS_PER_SOL;
   }
+
+  async getTotalFinancialPower() {
+    const address = this.getDaoPda();
+    const acc = await this.program.account.investmentDao.fetch(address);
+
+    return acc.totalDeposited;
+  }
 }

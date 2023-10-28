@@ -13,20 +13,20 @@ use crate::{
 pub struct WithdrawFunds<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    #[account()]
+    #[account(mut)]
     pub investment_dao: Account<'info, InvestmentDao>,
     #[account(seeds=[INVESTMENT_DAO_SEED,investment_dao.key().as_ref(),authority.key().as_ref()],bump)]
     pub investor_data: Account<'info, InvestorData>,
     #[account(mut,seeds=[INVESTMENT_DAO_SEED,investor_data.key().as_ref()],bump)]
     pub investor_financial_record: Account<'info, InvestorFinancialRecord>,
-    #[account()]
+    #[account(mut)]
     pub proposal: Account<'info, Proposal>,
     #[account(mut)]
     pub withdrawal_data: Account<'info, WithdrawalData>,
     #[account(init,seeds=[WITHDRWAL_SEED,withdrawal_data.key().as_ref(),authority.key().as_ref()],bump
     ,payer=authority,space=8+WithdrawalRecord::INIT_SPACE)]
     pub withdrawal_record: Account<'info, WithdrawalRecord>,
-    #[account(seeds=[WITHDRWAL_SEED,withdrawal_data.key().as_ref()],bump)]
+    #[account(mut,seeds=[WITHDRWAL_SEED,withdrawal_data.key().as_ref()],bump)]
     ///CHECK:seeds checked
     pub withdrawal_treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
