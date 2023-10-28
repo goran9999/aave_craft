@@ -14,6 +14,7 @@ pub struct Proposal {
     pub proposal_type: ProposalType,
     pub withdraw_amount: Option<u64>,
     pub vesting_config: Option<VestingConfig>,
+    pub proposal_state: ProposalState,
     pub vote_threshold: u8,
     pub yes_votes_count: u32,
     pub no_votes_count: u32,

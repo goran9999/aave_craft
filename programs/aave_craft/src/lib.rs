@@ -37,4 +37,22 @@ pub mod aave_craft {
     ) -> Result<()> {
         instructions::deposit_funds(ctx, amount)
     }
+
+    pub fn create_proposal(
+        ctx: Context<CreateProposal>,
+        proposal_type: ProposalType,
+        name: String,
+        description: String,
+        withdraw_amount: Option<u64>,
+        vesting_config: Option<VestingConfig>,
+    ) -> Result<()> {
+        instructions::create_proposal(
+            ctx,
+            proposal_type,
+            name,
+            description,
+            withdraw_amount,
+            vesting_config,
+        )
+    }
 }

@@ -68,6 +68,7 @@ pub struct InvestorData {
     pub joined_at: i64,
     pub invited_at: i64,
     pub total_deposits_count: u32,
+    pub created_proposal_count: u32,
 }
 
 #[derive(InitSpace, Clone, PartialEq, AnchorDeserialize, AnchorSerialize)]
