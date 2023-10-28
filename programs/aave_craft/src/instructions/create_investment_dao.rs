@@ -3,7 +3,7 @@ use anchor_spl::token::Mint;
 
 use crate::{
     constants::INVESTMENT_DAO_SEED,
-    state::{Governance, InvestmentDao},
+    state::{Currency, Governance, InvestmentDao},
 };
 
 #[derive(Accounts)]
@@ -28,8 +28,16 @@ pub fn create_investment_dao(
     investment_dao.denominated_currency = ctx.accounts.denominated_currency.key();
     investment_dao.governance_config = governance_config;
 
+    if ctx.accounts.denominated_currency.key() == Pubkey::default() {
+        //If denominated currency is 111..111, we consider dao currency Solana
+        investment_dao.currency = Currency::Sol;
+    } else {
+        investment_dao.currency = Currency::Spl;
+    }
+
     investment_dao.investors_count = 0;
     investment_dao.total_deposits_count = 0;
     investment_dao.name = name;
+    investment_dao.proposals_count = 0;
     Ok(())
 }
