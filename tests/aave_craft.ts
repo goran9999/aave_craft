@@ -244,5 +244,104 @@ describe("aave_craft", () => {
     } catch (error) {
       console.log(error);
     }
+
+    const proposal2 = new Proposal(
+      dao,
+      program,
+      "Investment solana",
+      "Investing funds",
+      ProposalType.Investing
+    );
+
+    const fundsReceivingAccount = await getKeypair(connection);
+
+    try {
+      getActionLog(`Creating investment proposal`);
+      const ix = await proposal2.createInvestingProposal(
+        2,
+        1.5 * LAMPORTS_PER_SOL,
+        fundsReceivingAccount.publicKey,
+        0.35 * LAMPORTS_PER_SOL,
+        1
+      );
+      await sendAndConfirmTransaction([ix], connection, [authority]);
+      const createdProposal = await proposal2.getProposal();
+      getLog(
+        `Created investment proposal with name: ${
+          createdProposal.name
+        }, and investing ${
+          createdProposal.vestingConfig.totalAmount.toNumber() /
+          LAMPORTS_PER_SOL
+        } SOL`
+      );
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      const ix1 = await proposal2.castVote(
+        VoteOption.Yes,
+        daoMember1.publicKey
+      );
+      const ix2 = await proposal2.castVote(
+        VoteOption.Yes,
+        daoMember2.publicKey
+      );
+      await sendAndConfirmTransaction([ix1], connection, [daoMember1]);
+      await sendAndConfirmTransaction([ix2], connection, [daoMember2]);
+      const votedProposal = await proposal2.getProposal();
+
+      getLog(
+        `Investment proposal is ${
+          Object.keys(votedProposal.proposalState)[0]
+        } after voting with total yes votes ${votedProposal.yesVotesCount}`
+      );
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      getActionLog(`Executing investment proposal`);
+      const treasurySolBalanceBefore = await dao.getTreasurySolBalance(
+        connection
+      );
+
+      getLog(`Treasury balance before investing: ${treasurySolBalanceBefore}`);
+      const ix = await proposal2.executeProposal(daoMember1.publicKey);
+      await sendAndConfirmTransaction([ix], connection, [daoMember1]);
+
+      const treasurySolBalanceAfter = await dao.getTreasurySolBalance(
+        connection
+      );
+
+      getLog(`Treasury balance after investing: ${treasurySolBalanceAfter}`);
+    } catch (error) {
+      console.log(error);
+    }
+
+    try {
+      getActionLog(`Claiming vested tokens`);
+      getLog(`Awaiting 3 seconds (2 cliff time + 1 period time)`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const balanceBefore = await getAccountSolBalance(
+        fundsReceivingAccount.publicKey,
+        connection
+      );
+      const ix = await proposal2.claimVestedTokens(
+        fundsReceivingAccount.publicKey
+      );
+      getLog(`SOL amount pre-claiming: ${balanceBefore}`);
+      await sendAndConfirmTransaction([ix], connection, [
+        fundsReceivingAccount,
+      ]);
+      const balanceAfter = await getAccountSolBalance(
+        fundsReceivingAccount.publicKey,
+        connection
+      );
+
+      getLog(`SOL amount post-claiming: ${balanceAfter}`);
+    } catch (error) {
+      console.log(error);
+    }
   });
 });

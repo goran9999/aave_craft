@@ -107,6 +107,8 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
 
             vesting_data.data.borrow_mut().copy_from_slice(&data);
 
+            msg!("CREATED VESTING DATA: {:?}", vesting_config.total_amount);
+
             match investment_dao.currency {
                 Currency::Sol => {
                     anchor_lang::system_program::transfer(

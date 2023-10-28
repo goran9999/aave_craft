@@ -277,4 +277,34 @@ export class Proposal {
 
     return proposal;
   }
+
+  async claimVestedTokens(authority: PublicKey) {
+    const [vesting, vestingTreasury] = this.getVestingData();
+    const ix = await this.program.methods
+      .claimTokens()
+      .accounts({
+        investmentDao: this.dao.getDaoPda(),
+        payer: authority,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        vesting,
+        vestingTreasury,
+      })
+      .instruction();
+
+    return ix;
+  }
+
+  getVestingData() {
+    const [vesting] = PublicKey.findProgramAddressSync(
+      [VESTING_SEED, this.proposalAddress.toBuffer()],
+      this.program.programId
+    );
+    const [vestingTreasury] = PublicKey.findProgramAddressSync(
+      [VESTING_SEED, vesting.toBuffer()],
+      this.program.programId
+    );
+
+    return [vesting, vestingTreasury];
+  }
 }
