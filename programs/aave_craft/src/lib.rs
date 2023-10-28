@@ -71,4 +71,10 @@ pub mod aave_craft {
     ) -> Result<()> {
         instructions::claim_tokens(ctx)
     }
+
+    pub fn withdraw_funds<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, WithdrawFunds<'info>>,
+    ) -> Result<()> {
+        instructions::withdraw_funds(ctx)
+    }
 }

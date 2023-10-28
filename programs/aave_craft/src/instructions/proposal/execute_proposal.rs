@@ -193,6 +193,7 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
                 amount: proposal.withdraw_amount.unwrap(),
                 currency: investment_dao.denominated_currency,
                 proposal: proposal.key(),
+                total_withdrawn: 0,
             };
             let mut data: Vec<u8> = vec![];
             data.extend_from_slice(&WithdrawalData::discriminator());

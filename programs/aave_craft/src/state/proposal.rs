@@ -142,4 +142,25 @@ pub struct WithdrawalData {
     pub proposal: Pubkey,
     pub amount: u64,
     pub currency: Pubkey,
+    pub total_withdrawn: u64,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct WithdrawalRecord {
+    pub amount_withdrawn: u64,
+    pub withdraw_at: i64,
+    pub proposal: Pubkey,
+}
+
+impl WithdrawalData {
+    pub fn calculate_withdrawal_amount(&self, deposit_amount: u64, total_rights: u64) -> u64 {
+        let amount = self.amount;
+
+        let ownership = (deposit_amount as f32).div(total_rights as f32);
+
+        let withdrawable = (amount as f32).mul(ownership) as u64;
+
+        withdrawable
+    }
 }
