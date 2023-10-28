@@ -8,4 +8,10 @@ pub enum InvestmentDaoError {
     InvalidInvitationStatus,
     #[msg("Invalid investor wallet")]
     InvalidInvestorWallet,
+    #[msg("Invalid treasury address")]
+    InvalidTreasuryAddress,
+    #[msg("Invalid deposit mint")]
+    InvalidDepositMint,
+    #[msg("Not part of DAO")]
+    NotPartOfDao,
 }
