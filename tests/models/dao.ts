@@ -3,6 +3,7 @@ import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import {
   Connection,
   Keypair,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
@@ -29,7 +30,7 @@ export class Dao {
     maxVotingTime: number,
     votingQuorum: number
   ) {
-    this.name = v4().slice(0, 10);
+    this.name = `DAO:` + v4().slice(0, 8);
     this.authority = authority;
     this.program = program;
     this.maxVotingTime = maxVotingTime;
@@ -48,6 +49,7 @@ export class Dao {
         investmentDao: daoAddress,
         daoAuthority: this.authority.publicKey,
         denominatedCurrency: SystemProgram.programId,
+        investorData: this.getInvestorDataAddress(this.authority.publicKey),
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -71,10 +73,10 @@ export class Dao {
       .inviteDaoInvestor()
       .accounts({
         authority: this.authority.publicKey,
-        daoInvestor: memberAddress,
+        daoInvestor: this.getInvestorDataAddress(memberAddress),
         investmentDao: this.getDaoPda(),
         systemProgram: SystemProgram.programId,
-        invitedInvestor: this.getInvestorDataAddress(memberAddress),
+        invitedInvestor: memberAddress,
       })
       .instruction();
 
@@ -121,7 +123,11 @@ export class Dao {
 
   getDaoTreasuryAddress() {
     const [treasury] = PublicKey.findProgramAddressSync(
-      [INVESTMENT_DAO_TREASURY_SEED, this.getDaoPda().toBuffer()],
+      [
+        INVESTMENT_DAO_TREASURY_SEED,
+        this.getDaoPda().toBuffer(),
+        SystemProgram.programId.toBuffer(),
+      ],
       this.program.programId
     );
 
@@ -146,5 +152,24 @@ export class Dao {
       .instruction();
 
     return ix;
+  }
+
+  async getFinancialRecord(wallet: PublicKey) {
+    const investorData = this.getInvestorDataAddress(wallet);
+    const address = this.getInvestorFinancialRecord(investorData);
+
+    const account = await this.program.account.investorFinancialRecord.fetch(
+      address
+    );
+
+    return account;
+  }
+
+  async getTreasurySolBalance(connection: Connection) {
+    const treasury = this.getDaoTreasuryAddress();
+
+    const balance = await connection.getBalance(treasury);
+
+    return balance / LAMPORTS_PER_SOL;
   }
 }

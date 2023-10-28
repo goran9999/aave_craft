@@ -5,7 +5,7 @@ mod instructions;
 use instructions::*;
 mod constants;
 mod errors;
-mod utils;
+
 declare_id!("BfWxKoznHmSzpGg75mUKq32nmys8tmADqSQoQjgFQRd3");
 
 #[program]

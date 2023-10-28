@@ -8,15 +8,15 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct AcceptDaoInvitation<'info> {
-    #[account()]
+    #[account(mut)]
     ///CHECK: checked with has_one constraint
     pub authority: UncheckedAccount<'info>,
-    #[account()]
+    #[account(mut)]
     ///CHECK: checked in seeds of investor_data
     pub investor: UncheckedAccount<'info>,
     #[account(has_one=authority)]
     pub investment_dao: Box<Account<'info, InvestmentDao>>,
-    #[account(seeds=[INVESTMENT_DAO_SEED,investment_dao.key().as_ref(),investor.key().as_ref()],bump)]
+    #[account(mut,seeds=[INVESTMENT_DAO_SEED,investment_dao.key().as_ref(),investor.key().as_ref()],bump)]
     pub investor_data: Account<'info, InvestorData>,
 }
 

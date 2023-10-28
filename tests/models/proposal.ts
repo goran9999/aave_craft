@@ -25,6 +25,7 @@ export class Proposal {
   description: string;
   proposalAddress: PublicKey;
   proposalType: ProposalType;
+  proposalIndex: number;
   constructor(
     dao: Dao,
     program: Program<AaveCraft>,
@@ -36,11 +37,14 @@ export class Proposal {
     this.program = program;
     this.name = name;
     this.description = description;
-    this.getProposalPda();
+
     this.proposalType = proposalType;
   }
 
   async createWithdrawalProposal(withdrawAmount: number) {
+    const { proposalAddress, proposalIndex } = await this.getNewProposalPda();
+    this.proposalAddress = proposalAddress;
+    this.proposalIndex = proposalIndex;
     const ix = await this.program.methods
       .createProposal(
         { withdrawal: {} },
@@ -63,23 +67,21 @@ export class Proposal {
     return ix;
   }
 
-  async getProposalPda() {
+  async getNewProposalPda() {
     const daoAddress = this.dao.getDaoPda();
     const daoAccount = await this.program.account.investmentDao.fetch(
       daoAddress
     );
 
     const countBuffer = Buffer.alloc(4);
-    countBuffer.writeUint32LE(daoAccount.proposalsCount + 1);
+    countBuffer.writeUint32LE(daoAccount.proposalsCount);
 
     const [proposalAddress] = PublicKey.findProgramAddressSync(
       [DAO_PROPOSAL_SEED, daoAddress.toBuffer(), countBuffer],
       this.program.programId
     );
 
-    this.proposalAddress = proposalAddress;
-
-    return proposalAddress;
+    return { proposalAddress, proposalIndex: daoAccount.proposalsCount + 1 };
   }
 
   getWithdrawalDataAddress() {
@@ -103,6 +105,9 @@ export class Proposal {
     amountPerPeriod: number,
     period: number
   ) {
+    const { proposalAddress, proposalIndex } = await this.getNewProposalPda();
+    this.proposalAddress = proposalAddress;
+    this.proposalIndex = proposalIndex;
     const ix = await this.program.methods
       .createProposal({ investing: {} }, this.name, this.description, null, {
         cliff: new BN(cliffAmount),
@@ -118,7 +123,7 @@ export class Proposal {
           this.dao.authority.publicKey
         ),
         systemProgram: SystemProgram.programId,
-        proposal: this.proposalAddress,
+        proposal: proposalAddress,
       })
       .instruction();
 
@@ -263,5 +268,13 @@ export class Proposal {
       .instruction();
 
     return ix;
+  }
+
+  async getProposal() {
+    const proposal = await this.program.account.proposal.fetch(
+      this.proposalAddress
+    );
+
+    return proposal;
   }
 }

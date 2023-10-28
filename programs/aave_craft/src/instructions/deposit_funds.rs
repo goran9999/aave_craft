@@ -8,23 +8,20 @@ use crate::{
         investment_dao::{Currency, InvestorFinancialRecord, InvestorState},
         InvestmentDao, InvestorData,
     },
-    utils::get_treasury_owning_program,
 };
 
 #[derive(Accounts)]
 pub struct DepositFunds<'info> {
     #[account(mut)]
-    ///CHECK:checked in seeds
-    pub investor: UncheckedAccount<'info>,
+    pub investor: Signer<'info>,
     #[account(mut)]
     pub investment_dao: Account<'info, InvestmentDao>,
-    #[account(seeds=[INVESTMENT_DAO_TREASURY_SEED,investment_dao.key().as_ref(),investment_dao.denominated_currency.as_ref()],bump,
-    seeds::program=get_treasury_owning_program(&investment_dao,&__program_id,&token_program.key()))]
+    #[account(mut,seeds=[INVESTMENT_DAO_TREASURY_SEED,investment_dao.key().as_ref(),investment_dao.denominated_currency.as_ref()],bump)]
     ///CHECK: seeds checked
     pub dao_treasury: UncheckedAccount<'info>,
     #[account(init_if_needed,seeds=[INVESTMENT_DAO_SEED,investor_data.key().as_ref()],bump,space=8+InvestorFinancialRecord::INIT_SPACE,payer=investor)]
     pub investor_financial_record: Account<'info, InvestorFinancialRecord>,
-    #[account(seeds=[INVESTMENT_DAO_SEED,investment_dao.key().as_ref(),investor.key().as_ref()],bump)]
+    #[account(mut,seeds=[INVESTMENT_DAO_SEED,investment_dao.key().as_ref(),investor.key().as_ref()],bump)]
     pub investor_data: Account<'info, InvestorData>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -36,7 +33,9 @@ pub fn deposit_funds<'a, 'b, 'c, 'info>(
 ) -> Result<()> {
     let investment_dao = &mut ctx.accounts.investment_dao;
 
-    investment_dao.total_deposited = investment_dao.total_deposited.checked_add(1).unwrap();
+    investment_dao.total_deposited = investment_dao.total_deposited.checked_add(amount).unwrap();
+    investment_dao.total_deposits_count =
+        investment_dao.total_deposits_count.checked_add(1).unwrap();
 
     let financial_record = &mut ctx.accounts.investor_financial_record;
 
