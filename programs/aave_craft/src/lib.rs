@@ -65,4 +65,10 @@ pub mod aave_craft {
     ) -> Result<()> {
         instructions::execute_proposal(ctx)
     }
+
+    pub fn claim_tokens<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ClaimTokens<'info>>,
+    ) -> Result<()> {
+        instructions::claim_tokens(ctx)
+    }
 }

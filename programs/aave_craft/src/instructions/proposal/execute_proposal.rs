@@ -80,6 +80,7 @@ pub fn execute_proposal<'a, 'b, 'c, 'info>(
                 proposal: proposal.key(),
                 last_claim_at: 0,
                 total_claimed: 0,
+                remaining_amount: vesting_config.total_amount,
             };
 
             create_account(

@@ -12,3 +12,6 @@ pub use deposit_funds::*;
 
 pub mod proposal;
 pub use proposal::*;
+
+pub mod vesting;
+pub use vesting::*;

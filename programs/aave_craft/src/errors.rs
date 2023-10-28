@@ -22,4 +22,12 @@ pub enum InvestmentDaoError {
     InvalidProposalState,
     #[msg("Invalid proposal data")]
     InvalidProposalData,
+    #[msg("Vesting not started yet")]
+    VestingNotStarted,
+    #[msg("No claimable tokens")]
+    NoClaimableTokens,
+    #[msg("Invalid vesting authority")]
+    InvalidVestingAuthority,
+    #[msg("No tokens left to claim")]
+    AllTokensClaimed,
 }
