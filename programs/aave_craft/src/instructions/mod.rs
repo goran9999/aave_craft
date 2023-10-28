@@ -9,3 +9,6 @@ pub use accept_dao_invitation::*;
 
 pub mod deposit_funds;
 pub use deposit_funds::*;
+
+pub mod proposal;
+pub use proposal::*;
