@@ -17,8 +17,9 @@ from root folder of project. This command will install all required depenedencie
 - rust and cargo v1.70.0
 - solana v1.14.18
 - anchor and avm v0.28.0
-  At the end, given command runs **anchor test** command that will run tests on local network validator. During running of tests, logs can be seeing explaining
-  account state changes such as SOL balances.
+
+At the end, given command runs **anchor test** command that will run tests on local network validator. During running of tests, logs can be seeing explaining
+account state changes such as SOL balances.
 
 ## Instructions
 
