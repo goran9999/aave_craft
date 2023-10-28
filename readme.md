@@ -9,6 +9,17 @@ System also implements proposals, where each DAO member can create proposal to i
 calculated based on deposited amount of tokens, such as ownership. Claiming invested tokens is realized through concept of **vesting**,
 where proposal creator defines cliff period, unlocking period and amount of tokens that is being unlocked.
 
+## Running tests
+
+In order to run tests of this projects (writtend in ts-mocha), host OS needs to be MacOS or Linux. Instruction for running tests is **bash script.sh**
+from root folder of project. This command will install all required depenedencies such as:
+
+- rust and cargo v1.70.0
+- solana v1.14.18
+- anchor and avm v0.28.0
+  At the end, given command runs **anchor test** command that will run tests on local network validator. During running of tests, logs can be seeing explaining
+  account state changes such as SOL balances.
+
 ## Instructions
 
 - [Create investment DAO](#create-investment-dao)
