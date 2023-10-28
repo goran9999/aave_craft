@@ -43,6 +43,7 @@ impl InvestmentDao {
 
 #[derive(InitSpace, Clone, AnchorDeserialize, AnchorSerialize)]
 pub struct Governance {
+    //In percentages (0-100)
     pub voting_quorum: u8,
     pub max_voting_time: i64,
 }

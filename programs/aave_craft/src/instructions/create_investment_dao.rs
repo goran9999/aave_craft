@@ -6,6 +6,7 @@ use anchor_spl::token::{InitializeAccount, Mint, Token, TokenAccount};
 
 use crate::{
     constants::INVESTMENT_DAO_SEED,
+    errors::InvestmentDaoError,
     state::{Currency, Governance, InvestmentDao},
 };
 
@@ -31,8 +32,13 @@ pub fn create_investment_dao<'a, 'b, 'c, 'info>(
 
     investment_dao.authority = ctx.accounts.dao_authority.key();
     investment_dao.denominated_currency = ctx.accounts.denominated_currency.key();
-    investment_dao.governance_config = governance_config;
 
+    require!(
+        governance_config.voting_quorum <= 100,
+        InvestmentDaoError::InvalidGovernanceConfig
+    );
+
+    investment_dao.governance_config = governance_config;
     let remaining_accounts = &mut ctx.remaining_accounts.iter();
     if ctx.accounts.denominated_currency.key() == Pubkey::default() {
         //If denominated currency is 111..111, we consider dao currency Solana

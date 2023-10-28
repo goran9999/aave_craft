@@ -1,6 +1,8 @@
+use std::ops::{Div, Mul};
+
 use anchor_lang::prelude::*;
 
-use super::VestingConfig;
+use super::{InvestmentDao, VestingConfig};
 
 #[account]
 #[derive(InitSpace)]
@@ -15,10 +17,24 @@ pub struct Proposal {
     pub withdraw_amount: Option<u64>,
     pub vesting_config: Option<VestingConfig>,
     pub proposal_state: ProposalState,
-    pub vote_threshold: u8,
+    pub vote_threshold: u64,
+    pub voting_ends_at: i64,
     pub yes_votes_count: u32,
     pub no_votes_count: u32,
     pub created_at: i64,
+}
+
+impl Proposal {
+    pub fn calculate_voting_treshold(investment_dao: &Account<InvestmentDao>) -> u64 {
+        let voting_quorum = investment_dao.governance_config.voting_quorum;
+        let max_voter_weight = investment_dao.total_deposited;
+
+        let voting_threshold: f32 = (voting_quorum as f32)
+            .div(100_f32)
+            .mul(max_voter_weight as f32);
+
+        voting_threshold as u64
+    }
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, InitSpace)]

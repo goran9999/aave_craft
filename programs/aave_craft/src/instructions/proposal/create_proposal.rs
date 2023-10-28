@@ -37,6 +37,16 @@ pub fn create_proposal(
 
     investment_dao.proposals_count = investment_dao.proposals_count.checked_add(1).unwrap();
 
+    let voting_ends_at = Clock::get()
+        .unwrap()
+        .unix_timestamp
+        .checked_add(investment_dao.governance_config.max_voting_time)
+        .unwrap();
+
+    proposal.voting_ends_at = voting_ends_at;
+
+    proposal.vote_threshold = Proposal::calculate_voting_treshold(investment_dao);
+
     proposal.created_at = Clock::get().unwrap().unix_timestamp;
     proposal.name = name;
     proposal.description = description;

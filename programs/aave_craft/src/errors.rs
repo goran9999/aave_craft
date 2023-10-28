@@ -14,4 +14,6 @@ pub enum InvestmentDaoError {
     InvalidDepositMint,
     #[msg("Not part of DAO")]
     NotPartOfDao,
+    #[msg("Invalid governance config")]
+    InvalidGovernanceConfig,
 }
