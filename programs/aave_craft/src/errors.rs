@@ -16,4 +16,6 @@ pub enum InvestmentDaoError {
     NotPartOfDao,
     #[msg("Invalid governance config")]
     InvalidGovernanceConfig,
+    #[msg("Proposal not in voting state")]
+    ProposalNotInVotingState,
 }

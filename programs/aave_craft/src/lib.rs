@@ -55,4 +55,8 @@ pub mod aave_craft {
             vesting_config,
         )
     }
+
+    pub fn cast_vote(ctx: Context<CastVote>, vote_option: VoteOption) -> Result<()> {
+        instructions::cast_vote(ctx, vote_option)
+    }
 }

@@ -2,6 +2,8 @@ use std::ops::{Div, Mul};
 
 use anchor_lang::prelude::*;
 
+use crate::errors::InvestmentDaoError;
+
 use super::{InvestmentDao, VestingConfig};
 
 #[account]
@@ -19,8 +21,8 @@ pub struct Proposal {
     pub proposal_state: ProposalState,
     pub vote_threshold: u64,
     pub voting_ends_at: i64,
-    pub yes_votes_count: u32,
-    pub no_votes_count: u32,
+    pub yes_votes_count: u64,
+    pub no_votes_count: u64,
     pub created_at: i64,
 }
 
@@ -35,9 +37,41 @@ impl Proposal {
 
         voting_threshold as u64
     }
+
+    pub fn try_tip_vote(
+        proposal: &mut Account<Proposal>,
+        voter_weight: u64,
+        vote_option: &VoteOption,
+    ) -> Result<()> {
+        if proposal.proposal_state != ProposalState::Voting {
+            return Err(error!(InvestmentDaoError::ProposalNotInVotingState));
+        }
+
+        match vote_option {
+            VoteOption::No => {
+                proposal.no_votes_count =
+                    proposal.no_votes_count.checked_add(voter_weight).unwrap();
+
+                //In order to proposal go to defeated,we need threshold + 1 vote
+                if proposal.no_votes_count > proposal.vote_threshold + 1 {
+                    proposal.proposal_state = ProposalState::Defeated;
+                }
+            }
+            VoteOption::Yes => {
+                proposal.yes_votes_count =
+                    proposal.yes_votes_count.checked_add(voter_weight).unwrap();
+
+                if proposal.yes_votes_count > proposal.vote_threshold + 1 {
+                    proposal.proposal_state = ProposalState::Succeded;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize, Clone, InitSpace)]
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, InitSpace, PartialEq)]
 pub enum ProposalState {
     Voting,
     Succeded,
