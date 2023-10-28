@@ -2,7 +2,7 @@ use std::ops::{Div, Mul};
 
 use anchor_lang::prelude::*;
 
-use crate::errors::InvestmentDaoError;
+use crate::{constants::WITHDRWAL_SEED, errors::InvestmentDaoError};
 
 use super::{InvestmentDao, VestingConfig};
 
@@ -69,6 +69,21 @@ impl Proposal {
 
         Ok(())
     }
+    pub fn check_withdrwal_data_seeds(
+        &self,
+        withdrawal_data: AccountInfo,
+        proposal_address: &Pubkey,
+        program_id: &Pubkey,
+    ) -> Result<u8> {
+        let (address, bump) =
+            Pubkey::find_program_address(&[WITHDRWAL_SEED, proposal_address.as_ref()], program_id);
+
+        require!(
+            address == withdrawal_data.key(),
+            InvestmentDaoError::InvalidProposalData
+        );
+        Ok(bump)
+    }
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, InitSpace, PartialEq)]
@@ -101,4 +116,12 @@ pub struct VoteRecord {
 pub enum ProposalType {
     Investing,
     Withdrawal,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct WithdrawalData {
+    pub proposal: Pubkey,
+    pub amount: u64,
+    pub currency: Pubkey,
 }

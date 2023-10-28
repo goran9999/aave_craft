@@ -18,4 +18,8 @@ pub enum InvestmentDaoError {
     InvalidGovernanceConfig,
     #[msg("Proposal not in voting state")]
     ProposalNotInVotingState,
+    #[msg("Invalid proposal state")]
+    InvalidProposalState,
+    #[msg("Invalid proposal data")]
+    InvalidProposalData,
 }

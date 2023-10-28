@@ -59,4 +59,10 @@ pub mod aave_craft {
     pub fn cast_vote(ctx: Context<CastVote>, vote_option: VoteOption) -> Result<()> {
         instructions::cast_vote(ctx, vote_option)
     }
+
+    pub fn execute_proposal<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ExecuteProposal<'info>>,
+    ) -> Result<()> {
+        instructions::execute_proposal(ctx)
+    }
 }
